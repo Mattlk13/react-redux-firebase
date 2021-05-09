@@ -12,6 +12,18 @@ import { supportedAuthProviders, actionTypes } from '../constants'
 function createAuthProvider(firebase, providerName, scopes) {
   // TODO: Verify scopes are valid before adding
   // TODO: Validate parameter inputs
+
+  const lowerCaseProviderName = providerName.toLowerCase()
+
+  if (
+    lowerCaseProviderName === 'microsoft.com' ||
+    lowerCaseProviderName === 'apple.com' ||
+    lowerCaseProviderName === 'yahoo.com'
+  ) {
+    const provider = new firebase.auth.OAuthProvider(providerName)
+    return provider
+  }
+
   const capitalProviderName = `${capitalize(providerName)}AuthProvider`
 
   // Throw if auth provider does not exist on Firebase instance
@@ -32,7 +44,7 @@ function createAuthProvider(firebase, providerName, scopes) {
 
   // Handle providers without scopes
   if (
-    providerName.toLowerCase() === 'twitter' ||
+    lowerCaseProviderName === 'twitter' ||
     typeof provider.addScope !== 'function'
   ) {
     return provider
@@ -43,7 +55,7 @@ function createAuthProvider(firebase, providerName, scopes) {
 
   if (scopes) {
     if (Array.isArray(scopes)) {
-      scopes.forEach(scope => {
+      scopes.forEach((scope) => {
         provider.addScope(scope)
       })
     }
@@ -160,6 +172,69 @@ export function getLoginMethodAndParams(firebase, credentials) {
 }
 
 /**
+ * Get correct reauthenticate method and params order based on provided
+ * credentials
+ * @param {object} firebase - Internal firebase object
+ * @param {object} credentials - Login credentials
+ * @param {string} credentials.provider - Provider name such as google, twitter
+ * (only needed for 3rd party provider login)
+ * @param {string} credentials.type - Popup or redirect (only needed for 3rd
+ * party provider login)
+ * @param {firebase.auth.AuthCredential} credentials.credential - Custom or
+ * provider token
+ * @param {Array|string} credentials.scopes - Scopes to add to provider
+ * (i.e. email)
+ * @returns {object} Method and params for calling login
+ * @private
+ */
+export function getReauthenticateMethodAndParams(firebase, credentials) {
+  const {
+    provider,
+    type,
+    scopes,
+    phoneNumber,
+    applicationVerifier,
+    credential
+  } = credentials
+  // Credential Auth
+  if (credential) {
+    // Attempt to use signInAndRetrieveDataWithCredential if it exists (see #467 for more info)
+    const credentialAuth = firebase.auth()
+      .reauthenticateAndRetrieveDataWithCredential
+
+    if (credentialAuth) {
+      return {
+        method: 'reauthenticateAndRetrieveDataWithCredential',
+        params: [credential]
+      }
+    }
+    return { method: 'reauthenticateWithCredential', params: [credential] }
+  }
+
+  // Provider Auth
+  if (provider) {
+    // Verify providerName is valid
+    if (supportedAuthProviders.indexOf(provider.toLowerCase()) === -1) {
+      throw new Error(`${provider} is not a valid Auth Provider`)
+    }
+    const authProvider = createAuthProvider(firebase, provider, scopes)
+    if (type === 'popup') {
+      return { method: 'reauthenticateWithPopup', params: [authProvider] }
+    }
+    return { method: 'reauthenticateWithRedirect', params: [authProvider] }
+  }
+
+  // Phone Number Auth
+  if (!applicationVerifier) {
+    throw new Error('Application verifier is required for phone authentication')
+  }
+  return {
+    method: 'reauthenticateWithPhoneNumber',
+    params: [phoneNumber, applicationVerifier]
+  }
+}
+
+/**
  * Returns a promise that completes when Firebase Auth is ready in the given
  * store using react-redux-firebase.
  * @param {object} store - The Redux store on which we want to detect if
@@ -196,7 +271,7 @@ function isAuthReady(store, stateName) {
  * @returns {Promise} Resolve when Firebase auth is ready in the store.
  */
 export function authIsReady(store, stateName = 'firebase') {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (isAuthReady(store, stateName)) {
       resolve()
     } else {
@@ -232,8 +307,10 @@ export function createAuthIsReady(store, config) {
  * @returns {Promise} Resolves with results of profile get
  */
 export function updateProfileOnRTDB(firebase, profileUpdate) {
-  const { database, _: { config, authUid } } = firebase
-  const profileRef = database().ref(`${config.userProfile}/${authUid}`)
+  const {
+    _: { config, authUid }
+  } = firebase
+  const profileRef = firebase.database().ref(`${config.userProfile}/${authUid}`)
   return profileRef.update(profileUpdate).then(() => profileRef.once('value'))
 }
 
@@ -245,7 +322,7 @@ export function updateProfileOnRTDB(firebase, profileUpdate) {
  * @param {object} options - Options object for configuring how profile
  * update occurs
  * @param {boolean} [options.useSet=true] - Use set with merge instead of
- * update. Setting to `false` uses update (can cause issue of profile document
+ * update. Setting to `false` uses update (can cause issue if profile document
  * does not exist).
  * @param {boolean} [options.merge=true] - Whether or not to use merge when
  * setting profile
@@ -257,7 +334,10 @@ export function updateProfileOnFirestore(
   options = {}
 ) {
   const { useSet = true, merge = true } = options
-  const { firestore, _: { config, authUid } } = firebase
+  const {
+    firestore,
+    _: { config, authUid }
+  } = firebase
   const profileRef = firestore().doc(`${config.userProfile}/${authUid}`)
   // Use set with merge (to prevent "No document to update") unless otherwise
   // specificed through options
@@ -282,7 +362,10 @@ export function setupPresence(dispatch, firebase) {
     return
   }
   const ref = firebase.database().ref()
-  const { config: { presence, sessions }, authUid } = firebase._
+  const {
+    config: { presence, sessions },
+    authUid
+  } = firebase._
   const amOnline = ref.child('.info/connected')
   const onlineRef = ref
     .child(
@@ -298,7 +381,7 @@ export function setupPresence(dispatch, firebase) {
   if (sessionsRef) {
     sessionsRef = ref.child(sessions)
   }
-  amOnline.on('value', snapShot => {
+  amOnline.on('value', (snapShot) => {
     if (!snapShot.val()) return
     // user is online
     if (sessionsRef) {

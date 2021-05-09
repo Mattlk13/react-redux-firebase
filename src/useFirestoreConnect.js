@@ -4,53 +4,48 @@ import { invokeArrayQuery, getChanges } from './utils'
 import useFirestore from './useFirestore'
 
 /**
- * React hook that automatically listens/unListens
+ * @description React hook that automatically listens/unListens
  * to provided Cloud Firestore paths. Make sure you have required/imported
  * Cloud Firestore, including it's reducer, before attempting to use.
- * **Note** Populate is not yet supported.
- * @param {object|string|Array|Function} queriesConfigs - An object, string,
+ * Populate is supported for Firestore as of v0.6.0 of redux-firestore (added
+ * [as part of issue #48](https://github.com/prescottprue/redux-firestore/issues/48)).
+ * @param {Array|Function} queriesConfigs - An object, string,
  * or array of object or string for paths to sync from firestore. Can also be
  * a function that returns the object, string, or array of object or string.
- * @see http://docs.react-redux-firebase.com/history/v3.0.0/docs/api/useFirestoreConnect.html
+ * @see https://react-redux-firebase.com/docs/api/useFirestoreConnect.html
  * @example <caption>Basic</caption>
  * import React from 'react'
- * import { map } from 'lodash'
  * import { useSelector } from 'react-redux'
- * import { useFirebaseConnect } from 'react-redux-firebase'
+ * import { useFirestoreConnect } from 'react-redux-firebase'
  *
- * function TodosList() {
- *   useFirebaseConnect('todos') // sync todos collection from Firestore into redux
- *   const todos = useSelector(state => state.firebase.data.todos)
+ * export default function TodosList() {
+ *   useFirestoreConnect(['todos']) // sync todos collection from Firestore into redux
+ *   const todos = useSelector(state => state.firestore.data.todos)
  *   return (
  *     <ul>
- *       {map(todos, (todo, todoId) => (
- *        <li>id: {todoId} todo: {JSON.stringify(todo)}</li>
- *       ))}
+ *       {todos &&
+ *         todos.map((todo) => (
+ *           <li>id: {todo.id} todo: {todo.description}</li>
+ *         ))}
  *    </ul>
  *   )
  * }
- * export default TodosList
  * @example <caption>Object as query</caption>
- * import React, { useMemo } from 'react'
- * import { get } from 'lodash'
- * import { connect } from 'react-redux'
- * import { useFirebaseConnect } from 'react-redux-firebase'
+ * import React from 'react'
+ * import { useSelector } from 'react-redux'
+ * import { useFirestoreConnect } from 'react-redux-firebase'
  *
- * function TodoItem({ todoId, todoData }) {
- *   useFirebaseConnect(() => ({
+ * export default function TodoItem({ todoId }) {
+ *   useFirestoreConnect([{
  *     collection: 'todos',
  *     doc: todoId
- *   }), [todoId]) // include dependency in the hook
+ *   }])
+ *   const todo = useSelector(
+ *     ({ firestore: { data } }) => data.todos && data.todos[todoId]
+ *   )
  *
- *   return <div>{JSON.stringify(todoData)}</div>
+ *   return <div>{JSON.stringify(todo)}</div>
  * }
- *
- * // pass todo data from redux as props.todosList
- * export default compose(
- *   connect((state) => ({
- *     todoData: get(state, ['firestore', 'data', 'todos', todoId])
- *   })
- * )(TodoItem)
  */
 export default function useFirestoreConnect(queriesConfigs) {
   const firestore = useFirestore()
@@ -59,22 +54,19 @@ export default function useFirestoreConnect(queriesConfigs) {
 
   const data = useMemo(() => invokeArrayQuery(queriesConfigs), [queriesConfigs])
 
-  useEffect(
-    () => {
-      if (firestoreIsEnabled && !isEqual(data, queryRef.current)) {
-        const changes = getChanges(data, queryRef.current)
+  useEffect(() => {
+    if (firestoreIsEnabled && !isEqual(data, queryRef.current)) {
+      const changes = getChanges(data, queryRef.current)
 
-        queryRef.current = data
+      queryRef.current = data
 
-        // Remove listeners for inactive subscriptions
-        firestore.unsetListeners(changes.removed)
+      // Remove listeners for inactive subscriptions
+      firestore.unsetListeners(changes.removed)
 
-        // Add listeners for new subscriptions
-        firestore.setListeners(changes.added)
-      }
-    },
-    [data]
-  )
+      // Add listeners for new subscriptions
+      firestore.setListeners(changes.added)
+    }
+  }, [data])
 
   // Emulate componentWillUnmount
   useEffect(() => {

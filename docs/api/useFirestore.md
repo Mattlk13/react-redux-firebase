@@ -7,7 +7,8 @@
 
 ## useFirestore
 
--   **See: [http://docs.react-redux-firebase.com/history/v3.0.0/docs/api/useFirestore.html][3]**
+
+React hook that return firestore object.
 
 ### Examples
 
@@ -17,7 +18,7 @@ _Basic_
 import React from 'react'
 import { useFirestore } from 'react-redux-firebase'
 
-function AddData({ firebase: { add } }) {
+export default function AddData() {
   const firestore = useFirestore()
 
   function addTodo() {
@@ -33,8 +34,6 @@ function AddData({ firebase: { add } }) {
     </div>
   )
 }
-
-export default AddTodo
 ```
 
 Returns **[object][4]** Extended Firestore instance
@@ -43,6 +42,6 @@ Returns **[object][4]** Extended Firestore instance
 
 [2]: #examples
 
-[3]: http://docs.react-redux-firebase.com/history/v3.0.0/docs/api/useFirestore.html
+[3]: https://react-redux-firebase.com/docs/api/useFirestore.html
 
 [4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object

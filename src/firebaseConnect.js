@@ -8,14 +8,14 @@ import ReactReduxFirebaseContext from './ReactReduxFirebaseContext'
 
 /**
  * @augments React.Component
- * React Higher Order Component that automatically listens/unListens to
+ * @description React Higher Order Component that automatically listens/unListens to
  * Firebase Real Time Database on mount/unmount of the component. This uses
  * React's Component Lifecycle hooks.
  * @param {Array|Function} queriesConfig - Array of objects or strings for paths to sync
  * from Firebase. Can also be a function that returns the array. The function
  * is passed the current props and the firebase object.
  * @returns {Function} - that accepts a component to wrap and returns the wrapped component
- * @see http://react-redux-firebase.com/api/firebaseConnect.html
+ * @see https://react-redux-firebase.com/docs/api/firebaseConnect.html
  * @example <caption>Basic</caption>
  * // props.firebase set on App component as firebase object with helpers
  * import { firebaseConnect } from 'react-redux-firebase'
@@ -71,12 +71,13 @@ import ReactReduxFirebaseContext from './ReactReduxFirebaseContext'
  * export default enhance(Post)
  */
 export default function firebaseConnect(queriesConfig = []) {
-  return WrappedComponent => {
+  return (WrappedComponent) => {
     class FirebaseConnectWrapped extends Component {
       static displayName = wrapDisplayName(
         WrappedComponent,
         'FirebaseConnectWrapped'
       )
+
       static wrappedComponent = WrappedComponent
 
       firebaseEvents = []
@@ -152,7 +153,7 @@ export default function firebaseConnect(queriesConfig = []) {
     function FirebaseConnectWithContext(props) {
       return (
         <ReactReduxFirebaseContext.Consumer>
-          {_internalFirebase => (
+          {(_internalFirebase) => (
             <FirebaseConnectWrapped
               {...props}
               dispatch={_internalFirebase.dispatch}

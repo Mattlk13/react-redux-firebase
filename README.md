@@ -6,12 +6,15 @@
 [![Code Coverage][coverage-image]][coverage-url]
 [![Code Style][code-style-image]][code-style-url]
 [![License][license-image]][license-url]
-[![Build Status][travis-image]][travis-url]
-[![Dependency Status][daviddm-image]][daviddm-url]
+[![Build Status][build-status-image]][build-status-url]
 
 [![Gitter][gitter-image]][gitter-url]
 
 > Redux bindings for Firebase. Includes Higher Order Component (HOC) for use with React.
+
+## Usage Note
+
+If you are starting a new project and/or are not required to have your Firebase data loaded into redux, you might want to give [reactfire](https://github.com/FirebaseExtended/reactfire) a try before trying react-redux-firebase. I wrote up [a quick medium article](http://bit.ly/3d2XPsS) explaining a bit about how, why, and showing how to start a new project with these tools.
 
 ## [Simple Example](https://codesandbox.io/s/zrr0n5m2zp)
 
@@ -21,19 +24,17 @@ The [Material Example](https://github.com/prescottprue/react-redux-firebase/tree
 
 ## Features
 
-* Out of the box support for authentication (with auto load user profile)
-* Full Firebase Platform Support Including Real Time Database, Firestore, and Storage
-* Automatic binding/unbinding of listeners through React Higher Order Components (`firebaseConnect` and `firestoreConnect`)
-* [Population capability](http://react-redux-firebase.com/docs/populate) (similar to mongoose's `populate` or SQL's `JOIN`)
-* Support small data ( using `value` ) or large datasets ( using `child_added`, `child_removed`, `child_changed` )
-* Multiple queries types supported including `orderByChild`, `orderByKey`, `orderByValue`, `orderByPriority`, `limitToLast`, `limitToFirst`, `startAt`, `endAt`, `equalTo`
-* Tons of examples of integrations including [`redux-thunk`](https://github.com/gaearon/redux-thunk) and [`redux-observable`](https://redux-observable.js.org/)
-* Server Side Rendering Support
-* [`react-native` support](http://react-redux-firebase.com/docs/integrations/react-native.html) using [native modules](http://react-redux-firebase.com/docs/integrations/react-native.html#native-modules) or [web sdk](http://react-redux-firebase.com/docs/integrations/react-native.html#jsweb)
+- Out of the box support for authentication (with auto loading user profile from database/firestore)
+- Full Firebase Platform Support Including Real Time Database, Firestore, and Storage
+- Automatic binding/unbinding of listeners through React Hooks (`useFirebaseConnect`, `useFirestoreConnect`) or Higher Order Components (`firebaseConnect` and `firestoreConnect`)
+- [Population capability](http://react-redux-firebase.com/docs/populate) (similar to mongoose's `populate` or SQL's `JOIN`)
+- Support small data ( using `value` ) or large datasets ( using `child_added`, `child_removed`, `child_changed` )
+- Multiple queries types supported including `orderByChild`, `orderByKey`, `orderByValue`, `orderByPriority`, `limitToLast`, `limitToFirst`, `startAt`, `endAt`, `equalTo`
+- Tons of examples of integrations including [`redux-thunk`](https://github.com/gaearon/redux-thunk) and [`redux-observable`](https://redux-observable.js.org/)
+- Server Side Rendering Support
+- [`react-native` support](http://react-redux-firebase.com/docs/integrations/react-native.html) using [native modules](http://react-redux-firebase.com/docs/integrations/react-native.html#native-modules) or [web sdk](http://react-redux-firebase.com/docs/integrations/react-native.html#jsweb)
 
 ## Installation
-
-Interested in support for [`react-redux@^6`](https://github.com/reduxjs/react-redux) or the [new react context API](https://reactjs.org/docs/context.html)? Checkout [the `next` branch which contains the next upcoming major version](https://github.com/prescottprue/react-redux-firebase/tree/next) (installed through `npm i --save react-redux-firebase@next`).
 
 ```bash
 npm install --save react-redux-firebase
@@ -42,6 +43,10 @@ npm install --save react-redux-firebase
 This assumes you are using [npm](https://www.npmjs.com/) as your package manager.
 
 If you're not, you can access the library on [unpkg](https://unpkg.com/redux-firestore@latest/dist/redux-firestore.min.js), download it, or point your package manager to it. Theres more on this in the [Builds section below](#builds).
+
+### Older Versions
+
+Interested in support for versions of [`react-redux`](https://github.com/reduxjs/react-redux) before v6 or the [new react context API](https://reactjs.org/docs/context.html)? Checkout [the `v2.*.*` versions](https://github.com/prescottprue/react-redux-firebase/tree/v2) (installed through `npm i --save react-redux-firebase^@2.5.0`).
 
 ## Use
 
@@ -52,11 +57,15 @@ import React from 'react'
 import { render } from 'react-dom'
 import { Provider } from 'react-redux'
 import firebase from 'firebase/app'
+import 'firebase/database'
 import 'firebase/auth'
 // import 'firebase/firestore' // <- needed if using firestore
 // import 'firebase/functions' // <- needed if using httpsCallable
 import { createStore, combineReducers, compose } from 'redux'
-import { ReactReduxFirebaseProvider, firebaseReducer } from 'react-redux-firebase'
+import {
+  ReactReduxFirebaseProvider,
+  firebaseReducer
+} from 'react-redux-firebase'
 // import { createFirestoreInstance, firestoreReducer } from 'redux-firestore' // <- needed if using firestore
 
 const fbConfig = {}
@@ -87,7 +96,7 @@ const store = createStore(rootReducer, initialState)
 const rrfProps = {
   firebase,
   config: rrfConfig,
-  dispatch: store.dispatch,
+  dispatch: store.dispatch
   // createFirestoreInstance // <- needed if using firestore
 }
 
@@ -99,7 +108,7 @@ function App() {
         <Todos />
       </ReactReduxFirebaseProvider>
     </Provider>
-  );
+  )
 }
 
 render(<App />, document.getElementById('root'))
@@ -124,9 +133,7 @@ export default function Todos() {
   return (
     <div>
       <h1>New Sample Todo</h1>
-      <button onClick={addSampleTodo}>
-        Add
-      </button>
+      <button onClick={addSampleTodo}>Add</button>
     </div>
   )
 }
@@ -144,8 +151,8 @@ export default function Todos() {
   useFirebaseConnect([
     'todos' // { path: '/todos' } // object notation
   ])
-  
-  const todos = useSelector(state => state.firebase.ordered.todos)
+
+  const todos = useSelector((state) => state.firebase.ordered.todos)
 
   if (!isLoaded(todos)) {
     return <div>Loading...</div>
@@ -158,13 +165,9 @@ export default function Todos() {
   return (
     <div>
       <ul>
-        {
-          Object.keys(todos).map(
-            (key, id) => (
-              <TodoItem key={key} id={id} todo={todos[key]}/>
-            )
-          )
-        }
+        {Object.keys(todos).map((key, id) => (
+          <TodoItem key={key} id={id} todo={todos[key]} />
+        ))}
       </ul>
     </div>
   )
@@ -180,18 +183,21 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { get } from 'lodash'
 import { useSelector } from 'react-redux'
-import { useFirebaseConnect } from 'react-redux-firebase'
+import { useFirebaseConnect, useFirebase } from 'react-redux-firebase'
 import { useParams } from 'react-router-dom'
 
 export default function Todo() {
   const { todoId } = useParams() // matches todos/:todoId in route
+  const firebase = useFirebase()
 
   useFirebaseConnect([
     { path: `todos/${todoId}` } // create todo listener
-    // `todos/${props.params.todoId}` // equivalent string notation
+    // `todos/${todoId}` // equivalent string notation
   ])
-  
-  const todo = useSelector(({ firebase: { data } }) => data.todos && data.todos[todoId])
+
+  const todo = useSelector(
+    ({ firebase: { data } }) => data.todos && data.todos[todoId]
+  )
 
   function updateTodo() {
     return firebase.update(`todos/${params.todoId}`, { done: !todo.isDone })
@@ -219,7 +225,7 @@ import { useSelector } from 'react-redux'
 import { useFirebase, isLoaded, isEmpty } from 'react-redux-firebase'
 
 function TodosList() {
-  const todos = useSelector(state => state.firebase.ordered.todos)
+  const todos = useSelector((state) => state.firebase.ordered.todos)
 
   if (!isLoaded(todos)) {
     return <div>Loading...</div>
@@ -231,16 +237,14 @@ function TodosList() {
 
   return (
     <ul>
-      {
-        Object.keys(todos).map((key, id) =>
-          <TodoItem key={key} id={id} todo={todos[key]}/>
-        )
-      }
+      {Object.keys(todos).map((key, id) => (
+        <TodoItem key={key} id={id} todo={todos[key]} />
+      ))}
     </ul>
   )
 }
 
-function Todos() {
+export default function Todos() {
   const firebase = useFirebase()
 
   return (
@@ -253,9 +257,6 @@ function Todos() {
     </div>
   )
 }
-
-// Export enhanced component
-export default Todos
 ```
 
 ## Firestore
@@ -270,20 +271,14 @@ Currently `react-redux-firebase` still handles auth when using [`redux-firestore
 
 See full documentation at [react-redux-firebase.com](http://react-redux-firebase.com)
 
-* [Getting Started](http://react-redux-firebase.com/docs/getting_started)
-* [Auth](http://react-redux-firebase.com/docs/auth)
-* [Queries](http://react-redux-firebase.com/docs/queries)
-* [Firestore](http://react-redux-firebase.com/docs/firestore)
-* [Populate](http://react-redux-firebase.com/docs/populate)
-* [API Reference](http://react-redux-firebase.com/docs/api)
+- [Getting Started](http://react-redux-firebase.com/docs/getting_started)
+- [Auth](http://react-redux-firebase.com/docs/auth)
+- [Queries](http://react-redux-firebase.com/docs/queries)
+- [Firestore](http://react-redux-firebase.com/docs/firestore)
+- [Populate](http://react-redux-firebase.com/docs/populate)
+- [API Reference](http://react-redux-firebase.com/docs/api)
 
 ## [Examples](examples)
-
-### Real World Applications
-
-* [fireadmin.io](http://fireadmin.io) - Firebase Instance Management Tool (source [available here](https://github.com/prescottprue/fireadmin))
-
-If you would like a project added to this section please reach out [over gitter][gitter-url]
 
 ### [Examples Folder](examples)
 
@@ -313,22 +308,26 @@ Join us on the [redux-firebase gitter](https://gitter.im/redux-firebase/Lobby).
 
 View docs for recipes on integrations with:
 
-* [redux-firestore](http://react-redux-firebase.com/docs/firestore.html)
-* [redux-thunk](http://react-redux-firebase.com/docs/integrations/thunks.html)
-* [reselect](http://react-redux-firebase.com/docs/integrations/integrations/reselect.html)
-* [redux-observable](http://react-redux-firebase.com/docs/integrations/redux-observable.html)
-* [redux-saga](http://react-redux-firebase.com/docs/integrations/redux-saga.html)
-* [redux-form](http://react-redux-firebase.com/docs/integrations/redux-form.html)
-* [redux-auth-wrapper](http://react-redux-firebase.com/docs/recipes/routing.html#advanced)
-* [redux-persist](http://react-redux-firebase.com/docs/integrations/redux-persist.html)
-* [react-native](http://react-redux-firebase.com/docs/integrations/react-native.html)
-* [react-native-firebase](http://react-redux-firebase.com/docs/integrations/react-native.html#native-modules)
+- [redux-firestore](http://react-redux-firebase.com/docs/firestore.html)
+- [redux-thunk](http://react-redux-firebase.com/docs/integrations/thunks.html)
+- [reselect](http://react-redux-firebase.com/docs/integrations/integrations/reselect.html)
+- [redux-observable](http://react-redux-firebase.com/docs/integrations/redux-observable.html)
+- [redux-saga](http://react-redux-firebase.com/docs/integrations/redux-saga.html)
+- [redux-form](http://react-redux-firebase.com/docs/integrations/redux-form.html)
+- [redux-auth-wrapper](http://react-redux-firebase.com/docs/recipes/routing.html#advanced)
+- [redux-persist](http://react-redux-firebase.com/docs/integrations/redux-persist.html)
+- [react-native](http://react-redux-firebase.com/docs/integrations/react-native.html)
+- [react-native-firebase](http://react-redux-firebase.com/docs/integrations/react-native.html#native-modules)
 
 ## Starting A Project
 
 ### Generator
 
 [generator-react-firebase](https://github.com/prescottprue/generator-react-firebase) is a yeoman generator uses react-redux-firebase when opting to include redux.
+
+### CRA Template
+
+[cra-template-rrf](https://github.com/prescottprue/cra-template-rrf) is a create-react-app template with react-redux-firebase included
 
 ### Complete Examples
 
@@ -351,7 +350,9 @@ It can be imported like so:
 <script src="../node_modules/redux-firestore/dist/redux-firestore.min.js"></script>
 <!-- or through cdn: <script src="https://unpkg.com/react-redux-firebase@latest/dist/react-redux-firebase.min.js"></script> -->
 <!-- or through cdn: <script src="https://unpkg.com/redux-firestore@latest/dist/redux-firestore.min.js"></script> -->
-<script>console.log('react redux firebase:', window.ReactReduxFirebase)</script>
+<script>
+  console.log('react redux firebase:', window.ReactReduxFirebase)
+</script>
 ```
 
 Note: In an effort to keep things simple, the wording from this explanation was modeled after [the installation section of the Redux Docs](https://redux.js.org/#installation).
@@ -362,12 +363,6 @@ This project exists thanks to all the people who contribute.
 
 <a href="https://github.com/prescottprue/react-redux-firebase/graphs/contributors"><img src="https://opencollective.com/react-redux-firebase/contributors.svg?width=890" /></a>
 
-## Backers
-
-Thank you to all our backers! 🙏
-
-* [Side Inc.](https://github.com/reside-eng)
-
 [npm-image]: https://img.shields.io/npm/v/react-redux-firebase.svg?style=flat-square
 [npm-url]: https://npmjs.org/package/react-redux-firebase
 [npm-downloads-image]: https://img.shields.io/npm/dm/react-redux-firebase.svg?style=flat-square
@@ -375,10 +370,8 @@ Thank you to all our backers! 🙏
 [quality-url]: https://packagequality.com/#?package=react-redux-firebase
 [backers]: https://opencollective.com/react-redux-firebase/backers/badge.svg?style=flat-square&color=blue
 [become-a-backer]: https://opencollective.com/react-redux-firebase#backer
-[travis-image]: https://img.shields.io/travis/prescottprue/react-redux-firebase/master.svg?style=flat-square
-[travis-url]: https://travis-ci.org/prescottprue/react-redux-firebase
-[daviddm-image]: https://img.shields.io/david/prescottprue/react-redux-firebase.svg?style=flat-square
-[daviddm-url]: https://david-dm.org/prescottprue/react-redux-firebase
+[build-status-image]: https://img.shields.io/github/workflow/status/prescottprue/react-redux-firebase/NPM%20Package%20Publish?style=flat-square
+[build-status-url]: https://github.com/prescottprue/react-redux-firebase/actions
 [climate-image]: https://img.shields.io/codeclimate/github/prescottprue/react-redux-firebase.svg?style=flat-square
 [climate-url]: https://codeclimate.com/github/prescottprue/react-redux-firebase
 [coverage-image]: https://img.shields.io/codecov/c/github/prescottprue/react-redux-firebase.svg?style=flat-square

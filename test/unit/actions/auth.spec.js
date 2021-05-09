@@ -18,7 +18,8 @@ import {
   updateEmail,
   resetPassword,
   confirmPasswordReset,
-  verifyPasswordResetCode
+  verifyPasswordResetCode,
+  applyActionCode
 } from 'actions/auth'
 import { cloneDeep } from 'lodash'
 import { actionTypes } from 'constants' // eslint-disable-line node/no-deprecated-api
@@ -28,7 +29,8 @@ import {
   createSuccessStub,
   onAuthStateChangedSpy,
   firebaseWithConfig,
-  createFailureStub
+  createFailureStub,
+  sleep
 } from '../../utils'
 // import { promisesForPopulate } from 'utils/populate'
 
@@ -86,7 +88,7 @@ describe('Actions: Auth -', () => {
 
     it('calls profile watch then sets to null when useFirestoreForProfile: true', () => {
       let profileCalled
-      let currentFake = cloneDeep(fakeFirebase)
+      const currentFake = cloneDeep(fakeFirebase)
       currentFake._.profileWatch = () => {
         profileCalled = true
       }
@@ -174,7 +176,7 @@ describe('Actions: Auth -', () => {
       })
 
       it('Any when useFirestoreForProfile: true - calls console.warn', () => {
-        let currentFake = cloneDeep(fakeFirebase)
+        const currentFake = cloneDeep(fakeFirebase)
         currentFake._.profileWatch = () => {}
         currentFake._.config.useFirestoreForProfile = true
         currentFake._.config.profileParamsToPopulate = ['some']
@@ -200,6 +202,23 @@ describe('Actions: Auth -', () => {
     it('sets profile watch function', () => {
       watchUserProfile(dispatch, firebase)
       expect(firebase._.profileWatch).to.be.a.function
+    })
+
+    it('for only the custom claims token', () => {
+      const fb = firebaseWithConfig({ userProfile: null, enableClaims: true })
+      fb.auth = () => ({
+        currentUser: {
+          getIdTokenResult: (bool) => ({
+            then: (func) => func('testToken')
+          })
+        }
+      })
+      watchUserProfile(functionSpy, fb)
+      expect(firebase._.profileWatch).to.be.a.function
+      expect(functionSpy).to.be.calledWith({
+        type: actionTypes.SET_PROFILE,
+        profile: { token: 'testToken' }
+      })
     })
 
     describe('populates -', () => {
@@ -256,13 +275,17 @@ describe('Actions: Auth -', () => {
         providerData: [{}]
       }
       const fb = firebaseWithConfig({ userProfile: null })
-      const profile = await createUserProfile(dispatch, fb, userData, {
+      const createPromise = createUserProfile(dispatch, fb, userData, {
         some: 'asdf'
       })
+      // Confirm a promise is returned
+      expect(createPromise.then).to.be.a('function')
+      profile = await createPromise
+      // Confirm profile is set
       expect(profile).to.equal(userData)
     })
 
-    it('creates profile using profileFactory if it exists', async () => {
+    it('creates profile using profileFactory sync function if it exists', async () => {
       const userData = {
         uid: '123',
         email: 'test@test.com',
@@ -279,24 +302,49 @@ describe('Actions: Auth -', () => {
       expect(profileFactory).to.have.been.calledOnce
     })
 
+    it('creates profile using profileFactory promise function if it exists', async () => {
+      const userData = {
+        uid: '123',
+        email: 'test@test.com',
+        providerData: [{}]
+      }
+      const profileObj = { some: 'asdf' }
+      /* eslint-disable jsdoc/require-jsdoc */
+      async function profileFactoryPromise() {
+        await sleep(500)
+        return profileObj
+      }
+      const profileFactory = sinon.spy(profileFactoryPromise)
+      const profile = await createUserProfile(
+        dispatch,
+        firebaseWithConfig({ profileFactory }),
+        userData
+      )
+      expect(profile).to.have.property('some', profileObj.some)
+      expect(profileFactory).to.have.been.calledOnce
+    })
+
     it('rejects for error in profileFactory function', async () => {
       const profileFactory = () => {
         throw new Error('test')
       }
+      const createPromise = createUserProfile(
+        dispatch,
+        firebaseWithConfig({ profileFactory }),
+        {},
+        {}
+      )
+      // Confirm a promise is returned
+      expect(createPromise.catch).to.be.a('function')
       try {
-        await createUserProfile(
-          dispatch,
-          firebaseWithConfig({ profileFactory }),
-          {},
-          {}
-        )
+        await createPromise
       } catch (err) {
         expect(err).to.have.property('message', 'test')
       }
     })
   })
 
-  describe('login', function() {
+  describe('login', function () {
     // Extend default timeout to prevent test fail on slow connection
     this.timeout(8000)
 
@@ -459,7 +507,7 @@ describe('Actions: Auth -', () => {
   describe('confirmPasswordReset', () => {
     it('resets password for real user', () => {
       return confirmPasswordReset(dispatch, fakeFirebase, 'test', 'test').then(
-        err => {
+        (err) => {
           expect(err).to.be.undefined
         }
       )
@@ -562,6 +610,22 @@ describe('Actions: Auth -', () => {
     })
   })
 
+  describe('applyActionCode', () => {
+    it('resolves for valid code', async () => {
+      res = await applyActionCode(dispatch, fakeFirebase, 'test')
+      // "success" indicates successful pas through of stub function
+      expect(res).to.equal('success')
+    })
+
+    it('throws for invalid reset code', async () => {
+      try {
+        res = await applyActionCode(dispatch, fakeFirebase, 'error')
+      } catch (err) {
+        expect(err.code).to.be.a.string
+      }
+    })
+  })
+
   describe('updateProfile', () => {
     it('dispatches PROFILE_UPDATE_START with profile', async () => {
       const payload = null
@@ -628,10 +692,9 @@ describe('Actions: Auth -', () => {
         config: { userProfile: 'users', useFirestoreForProfile: true }
       }
       res = await updateProfile(dispatch, newStubbed, profileUpdate)
-      expect(firebaseStub.firestore().doc().set).to.have.been.calledWith(
-        profileUpdate,
-        { merge: true }
-      )
+      expect(
+        firebaseStub.firestore().doc().set
+      ).to.have.been.calledWith(profileUpdate, { merge: true })
     })
 
     it('rejects if profile update fails', async () => {
