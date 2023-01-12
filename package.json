@@ -112,7 +112,7 @@
     "husky": "^3.0.8",
     "jsdom": "^11.10.0",
     "lodash-webpack-plugin": "^0.11.5",
-    "mocha": "^3.5.3",
+    "mocha": "^10.2.0",
     "nyc": "^14.1.1",
     "prettier": "1.10.2",
     "react": "^16.10.0",
