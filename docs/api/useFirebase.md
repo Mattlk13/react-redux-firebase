@@ -7,7 +7,13 @@
 
 ## useFirebase
 
--   **See: [http://docs.react-redux-firebase.com/history/v3.0.0/docs/api/useFirebase.html][3]**
+
+React hook that provides `firebase` object.
+Firebase is gathered from ReactReduxFirebaseContext, which is
+set by createFirebaseInstance during setup.
+**NOTE**: This version of the Firebase library has extra methods, config,
+and functionality which give it it's capabilities such as dispatching
+actions.
 
 ### Examples
 
@@ -16,7 +22,7 @@ _Basic_
 ```javascript
 import { useFirebase } from 'react-redux-firebase'
 
-function AddData() {
+export default function AddData() {
   const firebase = useFirebase()
 
   function addTodo() {
@@ -40,6 +46,6 @@ Returns **[object][4]** Extended Firebase instance
 
 [2]: #examples
 
-[3]: http://docs.react-redux-firebase.com/history/v3.0.0/docs/api/useFirebase.html
+[3]: https://react-redux-firebase.com/docs/api/useFirebase.html
 
 [4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object

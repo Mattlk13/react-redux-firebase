@@ -7,13 +7,11 @@ import { isObject, mapValues } from 'lodash'
  * @param {Function} opts.method - Method to call
  * @param {Array} opts.args - Arguments to call method with
  * @param {Array} opts.types - Action types array ([BEFORE, SUCCESS, FAILURE])
+ * @param {object} opts.meta - Meta object
  * @returns {Promise} Resolves after method is called and success action is dispatched
  * @private
  */
-export function wrapInDispatch(
-  dispatch,
-  { ref, meta, method, args = [], types }
-) {
+export function wrapInDispatch(dispatch, { meta, method, args = [], types }) {
   const [requestingType, successType, errorType] = types
   dispatch({
     type: isObject(requestingType) ? requestingType.type : requestingType,
@@ -21,7 +19,7 @@ export function wrapInDispatch(
     payload: isObject(requestingType) ? requestingType.payload : { args }
   })
   return method(...args)
-    .then(payload => {
+    .then((payload) => {
       dispatch({
         type: isObject(successType) ? successType.type : successType,
         meta,
@@ -29,7 +27,7 @@ export function wrapInDispatch(
       })
       return payload
     })
-    .catch(err => {
+    .catch((err) => {
       dispatch({
         type: errorType,
         meta,
@@ -49,7 +47,7 @@ export function wrapInDispatch(
  * and dispatch.
  */
 function createWithFirebaseAndDispatch(firebase, dispatch, dispatchFirst) {
-  return func => (...args) =>
+  return (func) => (...args) =>
     func.apply(
       firebase,
       dispatchFirst

@@ -28,14 +28,8 @@ export function deleteFile(firebase, { path, dbPath }) {
       // Choose delete function based on config (Handling Firestore and RTDB)
       const metaDeletePromise = () =>
         firebase._.config.useFirestoreForStorageMeta
-          ? firebase
-              .firestore()
-              .doc(dbPath)
-              .delete() // file meta in Firestore
-          : firebase
-              .database()
-              .ref(dbPath)
-              .remove() // file meta in RTDB
+          ? firebase.firestore().doc(dbPath).delete() // file meta in Firestore
+          : firebase.database().ref(dbPath).remove() // file meta in RTDB
 
       return metaDeletePromise().then(() => ({ path, dbPath }))
     })
@@ -46,6 +40,8 @@ export function deleteFile(firebase, { path, dbPath }) {
  * @param {object} settings - Settings object
  * @param {object} settings.fileData - File data which was uploaded
  * @param {object} settings.uploadTaskSnapshot - Snapshot from storage upload task
+ * @param {object} settings.firebase - Firebase instance
+ * @param {string} settings.downloadURL - Download url
  * @returns {Function} Function for handling upload result
  */
 function createUploadMetaResponseHandler({
@@ -115,6 +111,7 @@ function getDownloadURLFromUploadTaskSnapshot(uploadTaskSnapshot) {
  * @param {object} settings.uploadTaskSnapshot - Snapshot from upload task
  * @param {string} settings.dbPath - Path of meta data with Database (Real Time Or
  * Firestore depnding on config)
+ * @param {object} settings.options - Options object
  * @returns {Promise} Resolves with payload (includes snapshot, File, and
  * metaDataSnapshot)
  */
@@ -126,11 +123,11 @@ export function writeMetadataToDb({
 }) {
   // Support metadata factories from both global config and options
   const { fileMetadataFactory, useFirestoreForStorageMeta } = firebase._.config
-  const { metadataFactory } = options
+  const { metadataFactory, documentId, useSetForMetadata } = options
   const metaFactoryFunction = metadataFactory || fileMetadataFactory
   // Get download URL for use in metadata write
   return getDownloadURLFromUploadTaskSnapshot(uploadTaskSnapshot).then(
-    downloadURL => {
+    (downloadURL) => {
       // Apply fileMetadataFactory if it exists in config
       const fileData =
         typeof metaFactoryFunction === 'function'
@@ -151,20 +148,32 @@ export function writeMetadataToDb({
       })
 
       // Function for creating promise for writing file metadata (handles writing to RTDB or Firestore)
-      const metaSetPromise = fileData => {
+      const documentIdFromOptions =
+        typeof documentId === 'function'
+          ? documentId(
+              uploadTaskSnapshot,
+              firebase,
+              uploadTaskSnapshot.metadata,
+              downloadURL
+            )
+          : documentId
+      const metaSetPromise = (fileData) => {
         if (useFirestoreForStorageMeta) {
-          return firebase // Write metadata to Firestore
-            .firestore()
-            .collection(dbPath)
-            .add(fileData)
+          if (documentIdFromOptions) {
+            const docRef = firebase // Write metadata to Firestore
+              .firestore()
+              .collection(dbPath)
+              .doc(documentIdFromOptions)
+            return useSetForMetadata === false
+              ? docRef.update(fileData).then(() => docRef)
+              : docRef.set(fileData, { merge: true }).then(() => docRef)
+          }
+          return firebase.firestore().collection(dbPath).add(fileData)
         }
         // Create new reference for metadata
-        const newMetaRef = firebase
-          .database()
-          .ref(dbPath)
-          .push()
+        const newMetaRef = firebase.database().ref(dbPath).push()
         // Write metadata to Real Time Database and return new meta ref
-        return newMetaRef.set(fileData).then(res => newMetaRef)
+        return newMetaRef.set(fileData).then((res) => newMetaRef)
       }
 
       return metaSetPromise(fileData).then(resultFromSnap)
@@ -180,6 +189,7 @@ export function writeMetadataToDb({
  * @param {object} opts.path - Location within Firebase Stroage at which to upload file.
  * @param {Blob} opts.file - File to upload
  * @param {object} opts.fileMetadata - Metadata to pass along to storageRef.put call
+ * @param {object} opts.meta - Meta object
  * @returns {Promise} Promise which resolves after file upload
  * @private
  */
@@ -194,19 +204,19 @@ export function uploadFileWithProgress(
     .put(file, fileMetadata)
 
   const unListen = uploadEvent.on(firebase.storage.TaskEvent.STATE_CHANGED, {
-    next: snapshot => {
+    next: (snapshot) => {
       dispatch({
         type: FILE_UPLOAD_PROGRESS,
         meta,
         payload: {
           snapshot,
           percent: Math.floor(
-            snapshot.bytesTransferred / snapshot.totalBytes * 100
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
           )
         }
       })
     },
-    error: err => {
+    error: (err) => {
       dispatch({ type: FILE_UPLOAD_ERROR, meta, payload: err })
       unListen()
     },

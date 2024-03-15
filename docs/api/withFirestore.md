@@ -10,7 +10,11 @@
 
 ## withFirestore
 
--   **See: [http://react-redux-firebase.com/api/withFirestore.html][6]**
+**Extends React.Component**
+
+
+Higher Order Component that attaches `firestore`, `firebase`
+and `dispatch` as props to React Components.
 
 ### Parameters
 
@@ -91,7 +95,7 @@ Returns **React.Component** WrappedComponent wrapped with firebase context
 
 [5]: #parameters-1
 
-[6]: http://react-redux-firebase.com/api/withFirestore.html
+[6]: http://react-redux-firebase.com/docs/api/withFirestore.html
 
 [7]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
 

@@ -2,24 +2,23 @@
 
 ### Table of Contents
 
--   [useFirestoreConnect][1]
-    -   [Parameters][2]
-    -   [Examples][3]
+- [useFirestoreConnect][1]
+  - [Parameters][2]
+  - [Examples][3]
 
 ## useFirestoreConnect
-
--   **See: [http://docs.react-redux-firebase.com/history/v3.0.0/docs/api/useFirestoreConnect.html][4]**
 
 React hook that automatically listens/unListens
 to provided Cloud Firestore paths. Make sure you have required/imported
 Cloud Firestore, including it's reducer, before attempting to use.
-**Note** Populate is not yet supported.
+Populate is supported for Firestore as of v0.6.0 of redux-firestore (added
+[as part of issue #48][5]).
 
 ### Parameters
 
--   `queriesConfigs` **([object][5] \| [string][6] \| [Array][7] \| [Function][8])** An object, string,
-    or array of object or string for paths to sync from firestore. Can also be
-    a function that returns the object, string, or array of object or string.
+- `queriesConfigs` **([Array][6] \| [Function][7])** An object, string,
+  or array of object or string for paths to sync from firestore. Can also be
+  a function that returns the object, string, or array of object or string.
 
 ### Examples
 
@@ -27,61 +26,51 @@ _Basic_
 
 ```javascript
 import React from 'react'
-import { map } from 'lodash'
 import { useSelector } from 'react-redux'
-import { useFirebaseConnect } from 'react-redux-firebase'
+import { useFirestoreConnect } from 'react-redux-firebase'
 
-function TodosList() {
-  useFirebaseConnect('todos') // sync todos collection from Firestore into redux
-  const todos = useSelector(state => state.firebase.data.todos)
+export default function TodosList() {
+  useFirestoreConnect(['todos']) // sync todos collection from Firestore into redux
+  const todos = useSelector((state) => state.firestore.data.todos)
   return (
     <ul>
-      {map(todos, (todo, todoId) => (
-       <li>id: {todoId} todo: {JSON.stringify(todo)}</li>
-      ))}
-   </ul>
+      {todos &&
+        todos.map((todo) => (
+          <li>
+            id: {todo.id} todo: {todo.description}
+          </li>
+        ))}
+    </ul>
   )
 }
-export default TodosList
 ```
 
 _Object as query_
 
 ```javascript
-import React, { useMemo } from 'react'
-import { get } from 'lodash'
-import { connect } from 'react-redux'
-import { useFirebaseConnect } from 'react-redux-firebase'
+import React from 'react'
+import { useSelector } from 'react-redux'
+import { useFirestoreConnect } from 'react-redux-firebase'
 
-function TodoItem({ todoId, todoData }) {
-  useFirebaseConnect(() => ({
-    collection: 'todos',
-    doc: todoId
-  }), [todoId]) // include dependency in the hook
+export default function TodoItem({ todoId }) {
+  useFirestoreConnect([
+    {
+      collection: 'todos',
+      doc: todoId
+    }
+  ])
+  const todo = useSelector(
+    ({ firestore: { data } }) => data.todos && data.todos[todoId]
+  )
 
-  return <div>{JSON.stringify(todoData)}</div>
+  return <div>{JSON.stringify(todo)}</div>
 }
-
-// pass todo data from redux as props.todosList
-export default compose(
-  connect((state) => ({
-    todoData: get(state, ['firestore', 'data', 'todos', todoId])
-  })
-)(TodoItem)
 ```
 
 [1]: #usefirestoreconnect
-
 [2]: #parameters
-
 [3]: #examples
-
-[4]: http://docs.react-redux-firebase.com/history/v3.0.0/docs/api/useFirestoreConnect.html
-
-[5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
-
-[6]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
-
-[7]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
-
-[8]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
+[4]: https://react-redux-firebase.com/docs/api/useFirestoreConnect.html
+[5]: https://github.com/prescottprue/redux-firestore/issues/48
+[6]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+[7]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function

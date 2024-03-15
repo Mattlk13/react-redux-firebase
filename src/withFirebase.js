@@ -5,17 +5,15 @@ import ReactReduxFirebaseContext from './ReactReduxFirebaseContext'
 
 /**
  * @augments React.Component
- * Higher Order Component that provides `firebase` and
- * `dispatch` as a props to React Components. Firebase is gathered from
- * `store.firebase`, which is attached to store by the store enhancer
- * (`reactReduxFirebase`) during setup.
+ * @description Higher Order Component that provides `firebase` and
+ * `dispatch` as a props to React Components.
  * **NOTE**: This version of the Firebase library has extra methods, config,
  * and functionality which give it it's capabilities such as dispatching
  * actions.
  * @param {React.Component} WrappedComponent - React component to wrap
  * @returns {Function} - Which accepts a component to wrap and returns the
  * wrapped component
- * @see http://react-redux-firebase.com/api/withFirebase.html
+ * @see http://react-redux-firebase.com/docs/api/withFirebase.html
  * @example <caption>Basic</caption>
  * import React from 'react'
  * import { withFirebase } from 'react-redux-firebase'
@@ -69,7 +67,7 @@ export default function withFirebase(WrappedComponent) {
   function WithFirebase(props) {
     return (
       <ReactReduxFirebaseContext.Consumer>
-        {firebase => (
+        {(firebase) => (
           <WrappedComponent
             firebase={firebase}
             dispatch={firebase && firebase.dispatch}

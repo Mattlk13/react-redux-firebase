@@ -155,8 +155,8 @@ function createDataReducer(actionKey = 'data') {
           state
         )
       case MERGE:
-        const previousData = get(state, getDotStrPath(action.path), {})
-        const mergedData = assign(previousData, action[actionKey])
+        const previousData = get(state, getDotStrPath(action.path), {}) // eslint-disable-line no-case-declarations
+        const mergedData = assign(previousData, action[actionKey]) // eslint-disable-line no-case-declarations
         return setWith(Object, getDotStrPath(action.path), mergedData, state)
       case NO_VALUE:
         return setWith(Object, getDotStrPath(action.path), null, state)
@@ -206,7 +206,7 @@ export function authReducer(
           isLoaded: true
         }
       }
-      const auth = action.auth.toJSON ? action.auth.toJSON() : action.auth
+      const auth = action.auth.toJSON ? action.auth.toJSON() : action.auth // eslint-disable-line no-case-declarations
       // Support keeping data
       if (action.preserve && action.preserve.auth) {
         return preserveValuesFromState(state, action.preserve.auth, {
@@ -232,6 +232,10 @@ export function authReducer(
     case LOGIN_ERROR:
     case AUTH_EMPTY_CHANGE:
     case LOGOUT:
+      // If it's reauthenticate keep user datas
+      if (action.reauthenticate) {
+        return preserveValuesFromState(state, true, {})
+      }
       // Support keeping data when logging out
       if (action.preserve && action.preserve.auth) {
         return preserveValuesFromState(state, action.preserve.auth, {
@@ -359,9 +363,11 @@ export function errorsReducer(state = [], action) {
 /**
  * Reducer for listeners ids. Changed by `SET_LISTENER` and `UNSET_LISTENER`
  * actions.
- * @param  {object} [state={}] - Current listenersById redux state
- * @param  {object} action - Object containing the action that was dispatched
- * @param  {string} action.type - Type of action that was dispatched
+ * @param {object} [state={}] - Current listenersById redux state
+ * @param {object} action - Object containing the action that was dispatched
+ * @param {string} action.type - Type of action that was dispatched
+ * @param {string} action.path - Path of action that was dispatched
+ * @param {object} action.payload - Payload object
  * @returns {object} listenersById state after reduction (used in listeners)
  * @private
  */
@@ -385,9 +391,11 @@ function listenersById(state = {}, { type, path, payload }) {
 /**
  * Reducer for listeners state. Changed by `UNAUTHORIZED_ERROR`
  * and `LOGOUT` actions.
- * @param  {object} [state=[]] - Current allListeners redux state
- * @param  {object} action - Object containing the action that was dispatched
- * @param  {string} action.type - Type of action that was dispatched
+ * @param {object} [state=[]] - Current allListeners redux state
+ * @param {object} action - Object containing the action that was dispatched
+ * @param {string} action.type - Type of action that was dispatched
+ * @param {string} action.path - Path of action that was dispatched
+ * @param {object} action.payload - Payload object
  * @returns {object} allListeners state after reduction (used in listeners)
  * @private
  */
@@ -396,7 +404,7 @@ function allListeners(state = [], { type, path, payload }) {
     case SET_LISTENER:
       return [...state, payload.id]
     case UNSET_LISTENER:
-      return state.filter(lId => lId !== payload.id)
+      return state.filter((lId) => lId !== payload.id)
     default:
       return state
   }
